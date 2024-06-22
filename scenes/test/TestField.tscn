@@ -1,0 +1,96 @@
+[gd_scene load_steps=13 format=3 uid="uid://d0k7vqk5rh5vg"]
+
+[ext_resource type="Script" path="res://scenes/test/CharacterBody3D.gd" id="1_hs8ah"]
+[ext_resource type="Script" path="res://scenes/test/Camera3D.gd" id="3_2tr22"]
+[ext_resource type="Shader" path="res://scenes/test/dashLines.gdshader" id="3_73rh3"]
+[ext_resource type="MeshLibrary" path="res://addons/malcolm-snap-castle/meshlibrary/snap-castle.meshlib" id="3_l4yv6"]
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_472xh"]
+height = 1.0
+radius = 100.0
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_ahnl4"]
+backlight_enabled = true
+backlight = Color(0.145266, 0.145266, 0.145266, 1)
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_c5fef"]
+material = SubResource("StandardMaterial3D_ahnl4")
+top_radius = 100.0
+height = 1.0
+
+[sub_resource type="FastNoiseLite" id="FastNoiseLite_fcr0v"]
+
+[sub_resource type="NoiseTexture2D" id="NoiseTexture2D_aoqn8"]
+noise = SubResource("FastNoiseLite_fcr0v")
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_xeyg3"]
+shader = ExtResource("3_73rh3")
+shader_parameter/line_color = Color(1, 1, 1, 1)
+shader_parameter/line_count = 2.0
+shader_parameter/line_density = 0.125
+shader_parameter/line_faloff = 0.461
+shader_parameter/mask_size = 0.356
+shader_parameter/mask_edge = 0.394
+shader_parameter/animation_speed = 20.0
+shader_parameter/noise = SubResource("NoiseTexture2D_aoqn8")
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_8i0kx"]
+
+[sub_resource type="CapsuleMesh" id="CapsuleMesh_1t46q"]
+
+[node name="TestField" type="Node3D"]
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0.455809, 0.890078, 0, -0.890078, 0.455809, 0, 12.7177, 0.290406)
+light_color = Color(0.500095, 0.500095, 0.500095, 1)
+shadow_enabled = true
+
+[node name="Ground" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1, 0)
+
+[node name="Ground Collision" type="CollisionShape3D" parent="Ground"]
+shape = SubResource("CylinderShape3D_472xh")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Ground"]
+mesh = SubResource("CylinderMesh_c5fef")
+
+[node name="CharacterBody3D" type="CharacterBody3D" parent="."]
+transform = Transform3D(-0.947768, 0, 0.318959, 0, 1, 0, -0.318959, 0, -0.947768, 5.51454, 0.935597, -18.1672)
+script = ExtResource("1_hs8ah")
+state = null
+CAMERA_SENSITIVITY = null
+jump_counter = null
+dash_acceleration = null
+dash_speed = null
+
+[node name="Camera3D" type="Camera3D" parent="CharacterBody3D"]
+transform = Transform3D(1, 0, 0, 0, 0.965926, 0.258819, 0, -0.258819, 0.965926, 0, 1.15925, -0.637614)
+fov = 85.0
+script = ExtResource("3_2tr22")
+
+[node name="ColorRect" type="ColorRect" parent="CharacterBody3D/Camera3D"]
+visible = false
+material = SubResource("ShaderMaterial_xeyg3")
+offset_right = 1925.0
+offset_bottom = 1078.0
+
+[node name="RichTextLabel" type="RichTextLabel" parent="CharacterBody3D/Camera3D"]
+modulate = Color(1, 0, 1, 1)
+offset_right = 26352.0
+offset_bottom = 13400.0
+text = "Initializing..."
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="CharacterBody3D"]
+shape = SubResource("CapsuleShape3D_8i0kx")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="CharacterBody3D"]
+mesh = SubResource("CapsuleMesh_1t46q")
+
+[node name="GridMap" type="GridMap" parent="."]
+transform = Transform3D(-4.37114e-08, 0, -1, 0, 1, 0, 1, 0, -4.37114e-08, 0, -0.65, 0)
+mesh_library = ExtResource("3_l4yv6")
+cell_center_y = false
+data = {
+"cells": PackedInt32Array(1, 65532, 38, 3, 65535, 28, 4, 65535, 0, 6, 65535, 0, 6, 65533, 0, 4, 65533, 0, 4, 1, 0, 6, 1, 0, 8, 1, 0, 8, 65535, 655402, 8, 65533, 0, 65531, 0, 42)
+}
+metadata/_editor_floor_ = Vector3(0, 0, 0)
