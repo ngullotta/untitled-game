@@ -1,6 +1,7 @@
-[gd_scene load_steps=13 format=3 uid="uid://d0k7vqk5rh5vg"]
+[gd_scene load_steps=14 format=3 uid="uid://d0k7vqk5rh5vg"]
 
 [ext_resource type="Script" path="res://scenes/test/CharacterBody3D.gd" id="1_hs8ah"]
+[ext_resource type="PackedScene" uid="uid://cvyr76bfoyuv5" path="res://addons/turbosquid/TowerShieldPaladin.fbx" id="2_apvk6"]
 [ext_resource type="Script" path="res://scenes/test/Camera3D.gd" id="3_2tr22"]
 [ext_resource type="Shader" path="res://scenes/test/dashLines.gdshader" id="3_73rh3"]
 [ext_resource type="MeshLibrary" path="res://addons/malcolm-snap-castle/meshlibrary/snap-castle.meshlib" id="3_l4yv6"]
@@ -57,14 +58,12 @@ mesh = SubResource("CylinderMesh_c5fef")
 [node name="CharacterBody3D" type="CharacterBody3D" parent="."]
 transform = Transform3D(-0.947768, 0, 0.318959, 0, 1, 0, -0.318959, 0, -0.947768, 5.51454, 0.935597, -18.1672)
 script = ExtResource("1_hs8ah")
-state = null
-CAMERA_SENSITIVITY = null
-jump_counter = null
-dash_acceleration = null
-dash_speed = null
+
+[node name="Shield" parent="CharacterBody3D" instance=ExtResource("2_apvk6")]
+transform = Transform3D(-0.498074, 0, 0.0438473, 0, 0.5, 0, -0.0438473, 0, -0.498074, -1, 0, 0)
 
 [node name="Camera3D" type="Camera3D" parent="CharacterBody3D"]
-transform = Transform3D(1, 0, 0, 0, 0.965926, 0.258819, 0, -0.258819, 0.965926, 0, 1.15925, -0.637614)
+transform = Transform3D(1, 7.45058e-09, -2.98023e-08, 0, 0.965926, 0.258819, 0, -0.258819, 0.965926, -4.76837e-07, 1.15925, -0.637615)
 fov = 85.0
 script = ExtResource("3_2tr22")
 
@@ -75,16 +74,26 @@ offset_right = 1925.0
 offset_bottom = 1078.0
 
 [node name="RichTextLabel" type="RichTextLabel" parent="CharacterBody3D/Camera3D"]
-modulate = Color(1, 0, 1, 1)
-offset_right = 26352.0
-offset_bottom = 13400.0
-text = "Initializing..."
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -256.5
+offset_right = 255.5
+offset_bottom = 100.0
+grow_horizontal = 2
+bbcode_enabled = true
+text_direction = 1
+
+[node name="Head" type="Marker3D" parent="CharacterBody3D/Camera3D"]
+transform = Transform3D(1, -3.72529e-08, 2.98023e-08, 0, 1, 0, -1.49012e-07, 1.49012e-08, 1, -0.518715, 0.398926, -1.48881)
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="CharacterBody3D"]
 shape = SubResource("CapsuleShape3D_8i0kx")
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="CharacterBody3D"]
+[node name="Body" type="MeshInstance3D" parent="CharacterBody3D"]
 mesh = SubResource("CapsuleMesh_1t46q")
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="CharacterBody3D"]
 
 [node name="GridMap" type="GridMap" parent="."]
 transform = Transform3D(-4.37114e-08, 0, -1, 0, 1, 0, 1, 0, -4.37114e-08, 0, -0.65, 0)
