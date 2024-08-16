@@ -25,7 +25,7 @@ var shield_target_rota = Vector3.ZERO
 const SPEED = 15.0
 const JUMP_VELOCITY = 7.0
 const DASH_FORCE = 200
-const SHIELD_FORCE = 30
+const SHIELD_FORCE = 20
 
 # Camera Stuff
 @export var CAMERA_SENSITIVITY = 0.1
@@ -148,23 +148,23 @@ func _physics_process(delta):
 		shield.position = lerp(
 			shield.position, 
 			shield_target_pos, 
-			10 * delta
+			SHIELD_FORCE * delta
 		)
 		shield.rotation = lerp(
 			shield.rotation,
 			shield_target_rota,
-			10 * delta
+			SHIELD_FORCE * delta
 		)
 	else:
 		shield.position = lerp(
 			shield.position, 
 			shield_default_pos, 
-			SHIELD_FORCE * delta
+			(SHIELD_FORCE * 2) * delta
 		)
 		shield.rotation = lerp(
 			shield.rotation,
 			shield_default_rot,
-			SHIELD_FORCE * delta
+			(SHIELD_FORCE * 2) * delta
 		)
 
 	if direction != Vector3.ZERO:
