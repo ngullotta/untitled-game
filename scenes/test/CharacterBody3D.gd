@@ -9,7 +9,7 @@ enum State {
 }
 
 # State tracking
-@export var state = State.IDLE
+@export var state = 0
 var last_velocity = Vector3.ZERO
 var last_direction = Vector3.ZERO
 var last_camera_aim = Vector3.ZERO
@@ -51,7 +51,7 @@ func set_active_state(value, yn := true):
 		state |= value
 	else:
 		state &= ~value
-		
+
 func has_active_state(value):
 	return bool(state & value)
 
@@ -75,8 +75,6 @@ func process_ticks(delta):
 		dash_rect.set_visible(false)
 		dash_timer = 0
 		set_active_state(State.DASHING, false)
-	if not has_active_state(State.GROUND_POUNDING):
-		dash_rect.set_visible(false)
 
 
 func _ready():
@@ -96,6 +94,9 @@ func _physics_process(delta):
 		jump_counter = 0
 		set_active_state(State.GROUND_POUNDING, false)
 		dash_counter = 0
+		# Just add any states here where dash_rect is not used on a timer
+		if  not has_active_state(State.GROUND_POUNDING):
+			dash_rect.set_visible(false)
 
 	# Handle jump.
 	if Input.is_action_just_pressed("ui_accept") and (
@@ -123,7 +124,7 @@ func _physics_process(delta):
 		transform.basis * Vector3(input_dir.x, 0, input_dir.y)
 	).normalized()
 	
-	if Input.is_action_just_released("shift_left"):
+	if Input.is_action_just_released("shift_left") or Input.is_action_just_released("mouse_rclick"):
 		set_active_state(State.SHIELDING, false)
 
 	# Dash Handling (speedup)
@@ -131,8 +132,8 @@ func _physics_process(delta):
 	if Input.is_action_just_pressed("shift_left"):
 		set_active_state(State.SHIELDING, true)
 		shield_target_pos = camera.position
-		shield_target_pos.z -= 1 # put it a little in front
-		shield_target_pos.y -= 1 # put it a little down
+		shield_target_pos.z -= 0.5 # put it a little in front
+		shield_target_pos.y -= 1.10 # put it a little down
 		shield_target_rota = shield_default_rot
 		shield_target_rota.y = deg_to_rad(90)
 		if dash_counter == 0:
@@ -143,6 +144,15 @@ func _physics_process(delta):
 			var aim = camera.get_camera_transform()
 			if direction == Vector3.ZERO:
 				dash_target = -aim.basis.z * 50
+				
+				
+	if Input.is_action_just_pressed("mouse_rclick"):
+		set_active_state(State.SHIELDING, true)
+		shield_target_pos = camera.position
+		shield_target_pos.z -= 0.5 # put it a little in front
+		shield_target_pos.y -= 1.10 # put it a little down
+		shield_target_rota = shield_default_rot
+		shield_target_rota.y = deg_to_rad(90)
 	
 	if has_active_state(State.SHIELDING):
 		shield.position = lerp(
@@ -159,12 +169,12 @@ func _physics_process(delta):
 		shield.position = lerp(
 			shield.position, 
 			shield_default_pos, 
-			(SHIELD_FORCE * 2) * delta
+			(SHIELD_FORCE * 0.25) * delta
 		)
 		shield.rotation = lerp(
 			shield.rotation,
 			shield_default_rot,
-			(SHIELD_FORCE * 2) * delta
+			(SHIELD_FORCE * 0.25) * delta
 		)
 
 	if direction != Vector3.ZERO:
@@ -199,6 +209,11 @@ func _physics_process(delta):
 	last_direction = direction
 	move_and_slide()
 	process_ticks(delta)
+	
+	if velocity == Vector3.ZERO and state == 0:
+		set_active_state(State.IDLE)
+	elif velocity != Vector3.ZERO and state > 0:
+		set_active_state(State.IDLE, false)
 	
 	# Debug
 	var labelstate = _state_to_label()

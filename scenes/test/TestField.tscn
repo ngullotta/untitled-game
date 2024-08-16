@@ -60,7 +60,7 @@ transform = Transform3D(-0.947768, 0, 0.318959, 0, 1, 0, -0.318959, 0, -0.947768
 script = ExtResource("1_hs8ah")
 
 [node name="Shield" parent="CharacterBody3D" instance=ExtResource("2_apvk6")]
-transform = Transform3D(-0.498074, 0, 0.0438473, 0, 0.5, 0, -0.0438473, 0, -0.498074, -1, 0, 0)
+transform = Transform3D(-0.249037, 0, 0.0219236, 0, 0.25, 0, -0.0219236, 0, -0.249037, -1, -0.593209, 0)
 
 [node name="Camera3D" type="Camera3D" parent="CharacterBody3D"]
 transform = Transform3D(1, 7.45058e-09, -2.98023e-08, 0, 0.965926, 0.258819, 0, -0.258819, 0.965926, -4.76837e-07, 1.15925, -0.637615)
