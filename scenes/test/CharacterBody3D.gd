@@ -77,21 +77,25 @@ func remove_active_state(value):
 func has_active_state(value):
     return bool(state & value)
     
+func end_timer(label):
+    if timers.has(label):
+        timers[label].end.call()
+
 func add_timer(
     label,
-    start_value, 
-    end_value := 0, 
-    delta := 0, 
-    state := 0, 
+    start_value,
+    end_value := 0,
+    delta := 0,
+    state := 0,
     callbacks := []
 ):
     # Add a timer to `timers`
-    # every time `process_timers` is called, the `current_value` will be 
+    # every time `process_timers` is called, the `current_value` will be
     # decremented by `delta` until the `current_value` is < `end_value`
     # after this happens a callback can be triggered.
     #
-    # If no value provided for delta, whatever is passed to `process_ticks` 
-    # will be used. If `state` is provided, `state` will be set to active, 
+    # If no value provided for delta, whatever is passed to `process_ticks`
+    # will be used. If `state` is provided, `state` will be set to active,
     # and then removed once the `current_value` is < `end_value`
     timers[label] = {
         "current_value": start_value,
@@ -100,12 +104,13 @@ func add_timer(
         "state": state,
         "callbacks": callbacks
     }
-    
+    timers[label].end = func(): timers[label]["current_value"] = -INF
+
 func cleanup_timers():
     for timer in timers:
-        var data = timers[timer] 
+        var data = timers[timer]
         if data["current_value"] < data["end_value"]:
-            timers.erase(data)
+            timers.erase(timer)
 
 func process_timers(delta):
     for timer in timers:
@@ -118,31 +123,38 @@ func process_timers(delta):
                 callback.call()
             remove_active_state(data["state"])
 
-    #dash_timer -= delta
-    #slide_timer -= delta
-    #if dash_timer < 0 and has_active_state(State.DASHING):
-        #dash_rect.set_visible(false)
-        #dash_timer = 0
-        #set_active_state(State.DASHING, false)
-#
     #if slide_timer < 0 and has_active_state(State.SLIDING):
         #rotation = player_default_rota
         #dash_rect.set_visible(false)
         #slide_timer = 0
         #set_active_state(State.SLIDING, false)
         #camera.rotation.x += deg_to_rad(90)
+        
+func raise_shield():
+    shield_target_pos = camera.position
+    shield_target_pos.z -= 0.5 # put it a little in front
+    shield_target_pos.y -= 1.10 # put it a little down
+    shield_target_rota = shield_default_rota
+    shield_target_rota.y = deg_to_rad(90)
+    set_active_state(State.SHIELDING)
 
-func do_dash():
+func do_dash(direction := Vector3.ZERO):
+    raise_shield()
+    var aim = camera.get_camera_transform()
+    if direction == Vector3.ZERO:
+        dash_target = -aim.basis.z * 50
     add_timer(
         "dash",
         dash_time,
         0,
         0,
-        State.DASHING | State.SHIELDING,
+        State.DASHING,
         [
-            func(): dash_rect.set_visible(false)
+            func(): dash_rect.set_visible(false), 
+            func(): remove_active_state(State.SHIELDING)
         ]
-    )    
+    )
+    dash_rect.set_visible(true)    
 
 func _state_to_label():
     var labels = []
@@ -179,8 +191,8 @@ func _physics_process(delta):
         set_active_state(State.GROUND_POUNDING, false)
         dash_counter = 0
         # Just add any states here where dash_rect is not used on a timer
-        if  not has_active_state(State.GROUND_POUNDING):
-            dash_rect.set_visible(false)
+        #if  not has_active_state(State.GROUND_POUNDING):
+            #dash_rect.set_visible(false)d
 
     # Handle jump.
     if Input.is_action_just_pressed("ui_accept") and (
@@ -216,33 +228,14 @@ func _physics_process(delta):
         transform.basis * Vector3(input_dir.x, 0, input_dir.y)
     ).normalized()
 
-    if Input.is_action_just_released("shift_left") or Input.is_action_just_released("mouse_rclick"):
-        set_active_state(State.SHIELDING, false)
-
     # Dash Handling (speedup)
-    var speed_mult = 1
     if Input.is_action_just_pressed("shift_left"):
-        #set_active_state(State.SHIELDING, true)
-        shield_target_pos = camera.position
-        shield_target_pos.z -= 0.5 # put it a little in front
-        shield_target_pos.y -= 1.10 # put it a little down
-        shield_target_rota = shield_default_rota
-        shield_target_rota.y = deg_to_rad(90)
-        dash_rect.set_visible(true)
-        speed_mult = 10
-        var aim = camera.get_camera_transform()
-        if direction == Vector3.ZERO:
-            dash_target = -aim.basis.z * 50
-        do_dash()
-
+        do_dash(direction)
 
     if Input.is_action_just_pressed("mouse_rclick"):
-        set_active_state(State.SHIELDING, true)
-        shield_target_pos = camera.position
-        shield_target_pos.z -= 0.5 # put it a little in front
-        shield_target_pos.y -= 1.10 # put it a little down
-        shield_target_rota = shield_default_rota
-        shield_target_rota.y = deg_to_rad(90)
+        raise_shield()
+    elif Input.is_action_just_released("mouse_rclick"):
+        remove_active_state(State.SHIELDING)
 
     if has_active_state(State.SHIELDING):
         shield.position = lerp(
