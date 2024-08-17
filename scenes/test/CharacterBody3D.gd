@@ -5,7 +5,8 @@ enum State {
     JUMPING = 0x2,
     DASHING = 0x4,
     GROUND_POUNDING = 0x8,
-    SHIELDING = 0x10
+    SHIELDING = 0x10,
+    SLIDING = 0x20
 }
 
 # State tracking
@@ -26,6 +27,7 @@ const SPEED = 15.0
 const JUMP_VELOCITY = 7.0
 const DASH_FORCE = 200
 const SHIELD_FORCE = 20
+const SLIDE_FORCE = 2
 
 # Camera Stuff
 @export var CAMERA_SENSITIVITY = 0.1
@@ -39,9 +41,17 @@ const SHIELD_FORCE = 20
 @export var dash_counter = 0
 var dash_target = Vector3.ZERO
 
+# Slide stuff
+var slide_target = Vector3.ZERO
+
 # Timers
+# ======== DASH
 var dash_timer = 0
-var dash_time = 0.2
+var dash_time = 0.45
+
+# ======== SLIDE
+var slide_timer = 0
+var slide_time = 1.5
 
 # Get the gravity from the project settings to be synced with RigidBody nodes.
 var gravity = ProjectSettings.get_setting("physics/3d/default_gravity")
@@ -58,24 +68,32 @@ func has_active_state(value):
 func _state_to_label():
     var labels = []
     if has_active_state(State.IDLE):
-        labels.append("IDLE")
+        labels.append("Idle")
     if has_active_state(State.DASHING):
-        labels.append("DASHING")
+        labels.append("Dashing")
     if has_active_state(State.GROUND_POUNDING):
-        labels.append("GROUND_POUNDING")
+        labels.append("Ground Pounding")
     if has_active_state(State.JUMPING):
         labels.append("Jumping")
     if has_active_state(State.SHIELDING):
         labels.append("Shielding")
+    if has_active_state(State.SLIDING):
+        labels.append("Sliding")
     return " | ".join(labels)
 
 func process_ticks(delta):
     dash_timer -= delta
+    slide_timer -= delta
     if dash_timer < 0 and has_active_state(State.DASHING):
         dash_rect.set_visible(false)
         dash_timer = 0
         set_active_state(State.DASHING, false)
-
+        
+    if slide_timer < 0 and has_active_state(State.SLIDING):
+        dash_rect.set_visible(false)
+        slide_timer = 0
+        set_active_state(State.SLIDING, false)
+        
 
 func _ready():
     Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
@@ -111,6 +129,14 @@ func _physics_process(delta):
         dash_timer = dash_time
         dash_rect.set_visible(true)
         set_active_state(State.GROUND_POUNDING)
+    elif Input.is_action_just_pressed("ctrl_left") and is_on_floor():
+        # handle slide
+        slide_timer = slide_time
+        dash_rect.set_visible(true)
+        set_active_state(State.SLIDING, true)
+        # Set slide target
+        var aim = camera.get_camera_transform()
+        slide_target = -aim.basis.z * 15
 
     # Get the input direction and handle the movement/deceleration.
     # As good practice, you should replace UI actions with custom gameplay actions.
@@ -180,11 +206,20 @@ func _physics_process(delta):
     if direction != Vector3.ZERO:
         velocity.x = direction.x * SPEED
         velocity.z = direction.z * SPEED
+        set_active_state(State.SLIDING, false)
     else:
+        # Idle -> Dash
         if has_active_state(State.DASHING):
             velocity = lerp(
                 last_velocity, 
                 dash_target * dash_speed, 
+                dash_acceleration * delta
+            )
+        # Idle -> Slide
+        elif has_active_state(State.SLIDING):
+            velocity = lerp(
+                last_velocity, 
+                slide_target * SLIDE_FORCE, 
                 dash_acceleration * delta
             )
         else:
@@ -203,8 +238,7 @@ func _physics_process(delta):
             last_velocity.z * dash_speed, 
             dash_acceleration * delta
         )
-
-
+        
     last_velocity = velocity
     last_direction = direction
     move_and_slide()
