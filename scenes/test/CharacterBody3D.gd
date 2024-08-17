@@ -151,6 +151,8 @@ func do_dash(direction := Vector3.ZERO):
         State.DASHING,
         [
             func(): dash_rect.set_visible(false), 
+            # Because we raise the shield during the dash too, we need
+            # to ensure we lower it once finished
             func(): remove_active_state(State.SHIELDING)
         ]
     )
@@ -313,6 +315,11 @@ func _physics_process(delta):
         set_active_state(State.IDLE)
     elif velocity != Vector3.ZERO and state > 0:
         set_active_state(State.IDLE, false)
+        
+    if abs(velocity.x) > 25 or abs(velocity.y) > 10 or abs(velocity.z) > 25:
+        dash_rect.set_visible(true)
+    else:
+        dash_rect.set_visible(false)        
 
     # Debug
     var labelstate = _state_to_label()
