@@ -29,9 +29,6 @@ const SHIELD_FORCE = 20
 var shield_target_pos = Vector3.ZERO
 var shield_target_rota = Vector3.ZERO
 
-# Camera Stuff
-@export var CAMERA_SENSITIVITY = 0.1
-
 # Jump Stuff
 @export var JUMP_VELOCITY = 7
 var jump_counter = 0
@@ -121,13 +118,6 @@ func process_timers(delta):
             for callback in data["callbacks"]:
                 callback.call()
             remove_active_state(data["state"])
-
-    #if slide_timer < 0 and has_active_state(State.SLIDING):
-        #rotation = player_default_rota
-        #dash_rect.set_visible(false)
-        #slide_timer = 0
-        #set_active_state(State.SLIDING, false)
-        #camera.rotation.x += deg_to_rad(90)
 
 func raise_shield():
     set_active_state(State.SHIELDING)
@@ -225,7 +215,6 @@ func _physics_process(delta):
     # Handle all inputs and get a vector for direction
     var direction = handle_input()
 
-
     if direction != Vector3.ZERO:
         velocity.x = direction.x * SPEED
         velocity.z = direction.z * SPEED
@@ -255,7 +244,6 @@ func _physics_process(delta):
             velocity.x = move_toward(velocity.x, 0, SPEED)
             velocity.z = move_toward(velocity.z, 0, SPEED)
 
-    # Dashing Logic
     if has_active_state(State.DASHING) and direction != Vector3.ZERO:
         velocity.x += lerp(
             velocity.x,
@@ -271,6 +259,7 @@ func _physics_process(delta):
     last_velocity = velocity
     last_direction = direction
     last_camera_rota = camera.rotation
+
     move_and_slide()
     process_timers(delta)
     cleanup_timers()
@@ -279,13 +268,3 @@ func _physics_process(delta):
         set_active_state(State.IDLE)
     elif velocity != Vector3.ZERO and state > 0:
         set_active_state(State.IDLE, false)
-
-func _input(event):
-    if event is InputEventMouseMotion:
-        var mouse_sensitivity = 0.01
-        var camera = $Camera3D
-        if camera:
-            var rx = deg_to_rad(-event.relative.y * CAMERA_SENSITIVITY)
-            camera.rotate_x(rx)
-            var ry = deg_to_rad(-event.relative.x * CAMERA_SENSITIVITY)
-            self.rotate_y(ry)
