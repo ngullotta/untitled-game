@@ -150,13 +150,30 @@ func do_dash(direction := Vector3.ZERO):
         0,
         State.DASHING,
         [
-            func(): dash_rect.set_visible(false), 
             # Because we raise the shield during the dash too, we need
             # to ensure we lower it once finished
             func(): remove_active_state(State.SHIELDING)
         ]
     )
-    dash_rect.set_visible(true)    
+    dash_rect.set_visible(true)
+
+func do_slide():
+    raise_shield()
+    add_timer(
+        "slide",
+        slide_time,
+        0,
+        0,
+        State.SLIDING,
+        [
+            # Because we raise the shield during the dash too, we need
+            # to ensure we lower it once finished
+            func(): remove_active_state(State.SHIELDING),
+            func(): rotation = player_default_rota
+        ]
+    )
+    var aim = camera.get_camera_transform()
+    slide_target = -aim.basis.z * 15
 
 func _state_to_label():
     var labels = []
@@ -182,44 +199,7 @@ func _ready():
     shield_default_pos = shield.position
     shield_default_rota = shield.rotation
 
-func _physics_process(delta):
-    # Add the gravity.
-    if not is_on_floor():
-        velocity.y -= gravity * delta
-
-    # Reset double-jump
-    if is_on_floor():
-        jump_counter = 0
-        set_active_state(State.GROUND_POUNDING, false)
-        dash_counter = 0
-        # Just add any states here where dash_rect is not used on a timer
-        #if  not has_active_state(State.GROUND_POUNDING):
-            #dash_rect.set_visible(false)d
-
-    # Handle jump.
-    if Input.is_action_just_pressed("ui_accept") and (
-        is_on_floor() or jump_counter <= 1
-    ):
-        velocity.y = JUMP_VELOCITY
-        jump_counter += 1
-
-    # Ground Pound
-    if Input.is_action_just_pressed("ctrl_left") and not is_on_floor():
-        velocity.y -= JUMP_VELOCITY * 3
-        dash_timer = dash_time
-        dash_rect.set_visible(true)
-        set_active_state(State.GROUND_POUNDING)
-    elif Input.is_action_just_pressed("ctrl_left") and is_on_floor():
-        # handle slide
-        slide_timer = slide_time
-        dash_rect.set_visible(true)
-        set_active_state(State.SLIDING, true)
-        # Set slide target
-        var aim = camera.get_camera_transform()
-        slide_target = -aim.basis.z * 15
-
-    # Get the input direction and handle the movement/deceleration.
-    # As good practice, you should replace UI actions with custom gameplay actions.
+func handle_input():
     var input_dir = Input.get_vector(
         "ui_left",
         "ui_right",
@@ -229,16 +209,46 @@ func _physics_process(delta):
     var direction = (
         transform.basis * Vector3(input_dir.x, 0, input_dir.y)
     ).normalized()
-
-    # Dash Handling (speedup)
-    if Input.is_action_just_pressed("shift_left"):
+    
+    # Inputs that actually perform an action
+    if Input.is_action_just_pressed("ui_accept") and (
+        is_on_floor() or jump_counter <= 1
+    ):
+        velocity.y = JUMP_VELOCITY
+        jump_counter += 1
+    # Ground pound
+    elif Input.is_action_just_pressed("ctrl_left") and not is_on_floor():
+        velocity.y -= JUMP_VELOCITY * 3
+        set_active_state(State.GROUND_POUNDING)
+    # Slide
+    elif Input.is_action_just_pressed("ctrl_left") and is_on_floor():
+        do_slide()
+    # Dash
+    elif Input.is_action_just_pressed("shift_left"):
         do_dash(direction)
-
+    # Shield Up
     if Input.is_action_just_pressed("mouse_rclick"):
         raise_shield()
+    # Shield Down        
     elif Input.is_action_just_released("mouse_rclick"):
         remove_active_state(State.SHIELDING)
 
+    return direction 
+
+func _physics_process(delta):
+    # Add the gravity.
+    if not is_on_floor():
+        velocity.y -= gravity * delta
+
+    # Reset double-jump
+    if is_on_floor():
+        jump_counter = 0
+        remove_active_state(State.GROUND_POUNDING)
+
+    # Handle all inputs and get a vector for direction
+    var direction = handle_input()
+    
+    
     if has_active_state(State.SHIELDING):
         shield.position = lerp(
             shield.position,
@@ -276,16 +286,16 @@ func _physics_process(delta):
             )
         # Idle -> Slide
         elif has_active_state(State.SLIDING):
-            velocity = lerp(
-                last_velocity,
-                slide_target * SLIDE_FORCE,
+            velocity.x = lerp(
+                last_velocity.x,
+                slide_target.x * SLIDE_FORCE,
                 dash_acceleration * delta
             )
-            #camera.rotation.x = lerp(
-                #last_camera_rota.x,
-                #deg_to_rad(-82),
-                #5 * delta
-            #)
+            velocity.z = lerp(
+                last_velocity.z,
+                slide_target.z * SLIDE_FORCE,
+                dash_acceleration * delta
+            )
             rotation.x = deg_to_rad(82)
         else:
             velocity.x = move_toward(velocity.x, 0, SPEED)
