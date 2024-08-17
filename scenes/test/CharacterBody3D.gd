@@ -14,6 +14,8 @@ enum State {
 var last_velocity = Vector3.ZERO
 var last_direction = Vector3.ZERO
 var last_camera_aim = Vector3.ZERO
+var player_default_rota = Vector3.ZERO
+var camera_default_rota = Vector3.ZERO
 
 @onready var camera = $Camera3D
 @onready var dash_rect = $Camera3D/ColorRect
@@ -90,6 +92,7 @@ func process_ticks(delta):
         set_active_state(State.DASHING, false)
         
     if slide_timer < 0 and has_active_state(State.SLIDING):
+        rotation = player_default_rota
         dash_rect.set_visible(false)
         slide_timer = 0
         set_active_state(State.SLIDING, false)
@@ -99,6 +102,8 @@ func _ready():
     Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
     set_process_input(true)
     dash_rect.set_visible(false)
+    player_default_rota = rotation
+    camera_default_rota = rotation
     shield_default_pos = shield.position
     shield_default_rot = shield.rotation
 
@@ -207,6 +212,7 @@ func _physics_process(delta):
         velocity.x = direction.x * SPEED
         velocity.z = direction.z * SPEED
         set_active_state(State.SLIDING, false)
+        slide_timer = -1
     else:
         # Idle -> Dash
         if has_active_state(State.DASHING):
@@ -222,6 +228,8 @@ func _physics_process(delta):
                 slide_target * SLIDE_FORCE, 
                 dash_acceleration * delta
             )
+            rotation.x = deg_to_rad(82)
+            camera.rotation.x = deg_to_rad(-90)
         else:
             velocity.x = move_toward(velocity.x, 0, SPEED)
             velocity.z = move_toward(velocity.z, 0, SPEED)
