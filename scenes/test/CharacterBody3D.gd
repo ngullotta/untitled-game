@@ -11,7 +11,6 @@ enum State {
 
 # References
 @onready var camera = $Camera3D
-@onready var dash_rect = $Camera3D/ColorRect
 @onready var shield = $Shield
 
 # State
@@ -76,7 +75,7 @@ func remove_active_state(value):
 
 func has_active_state(value):
     return bool(state & value)
-    
+
 func end_timer(label):
     if timers.has(label):
         timers[label].end.call()
@@ -129,13 +128,8 @@ func process_timers(delta):
         #slide_timer = 0
         #set_active_state(State.SLIDING, false)
         #camera.rotation.x += deg_to_rad(90)
-        
+
 func raise_shield():
-    shield_target_pos = camera.position
-    shield_target_pos.z -= 0.5 # put it a little in front
-    shield_target_pos.y -= 1.10 # put it a little down
-    shield_target_rota = shield_default_rota
-    shield_target_rota.y = deg_to_rad(90)
     set_active_state(State.SHIELDING)
 
 func do_dash(direction := Vector3.ZERO):
@@ -155,7 +149,6 @@ func do_dash(direction := Vector3.ZERO):
             func(): remove_active_state(State.SHIELDING)
         ]
     )
-    dash_rect.set_visible(true)
 
 func do_slide():
     raise_shield()
@@ -175,26 +168,9 @@ func do_slide():
     var aim = camera.get_camera_transform()
     slide_target = -aim.basis.z * 15
 
-func _state_to_label():
-    var labels = []
-    if has_active_state(State.IDLE):
-        labels.append("Idle")
-    if has_active_state(State.DASHING):
-        labels.append("Dashing")
-    if has_active_state(State.GROUND_POUNDING):
-        labels.append("Ground Pounding")
-    if has_active_state(State.JUMPING):
-        labels.append("Jumping")
-    if has_active_state(State.SHIELDING):
-        labels.append("Shielding")
-    if has_active_state(State.SLIDING):
-        labels.append("Sliding")
-    return " | ".join(labels)
-
 func _ready():
     Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
     set_process_input(true)
-    dash_rect.set_visible(false)
     player_default_rota = rotation
     shield_default_pos = shield.position
     shield_default_rota = shield.rotation
@@ -209,8 +185,9 @@ func handle_input():
     var direction = (
         transform.basis * Vector3(input_dir.x, 0, input_dir.y)
     ).normalized()
-    
+
     # Inputs that actually perform an action
+    # Jump
     if Input.is_action_just_pressed("ui_accept") and (
         is_on_floor() or jump_counter <= 1
     ):
@@ -229,11 +206,11 @@ func handle_input():
     # Shield Up
     if Input.is_action_just_pressed("mouse_rclick"):
         raise_shield()
-    # Shield Down        
+    # Shield Down
     elif Input.is_action_just_released("mouse_rclick"):
         remove_active_state(State.SHIELDING)
 
-    return direction 
+    return direction
 
 func _physics_process(delta):
     # Add the gravity.
@@ -247,30 +224,7 @@ func _physics_process(delta):
 
     # Handle all inputs and get a vector for direction
     var direction = handle_input()
-    
-    
-    if has_active_state(State.SHIELDING):
-        shield.position = lerp(
-            shield.position,
-            shield_target_pos,
-            SHIELD_FORCE * delta
-        )
-        shield.rotation = lerp(
-            shield.rotation,
-            shield_target_rota,
-            SHIELD_FORCE * delta
-        )
-    else:
-        shield.position = lerp(
-            shield.position,
-            shield_default_pos,
-            (SHIELD_FORCE * 0.25) * delta
-        )
-        shield.rotation = lerp(
-            shield.rotation,
-            shield_default_rota,
-            (SHIELD_FORCE * 0.25) * delta
-        )
+
 
     if direction != Vector3.ZERO:
         velocity.x = direction.x * SPEED
@@ -325,15 +279,6 @@ func _physics_process(delta):
         set_active_state(State.IDLE)
     elif velocity != Vector3.ZERO and state > 0:
         set_active_state(State.IDLE, false)
-        
-    if abs(velocity.x) > 25 or abs(velocity.y) > 10 or abs(velocity.z) > 25:
-        dash_rect.set_visible(true)
-    else:
-        dash_rect.set_visible(false)        
-
-    # Debug
-    var labelstate = _state_to_label()
-    $Camera3D/RichTextLabel.text = "[center]%s[/center]" % labelstate
 
 func _input(event):
     if event is InputEventMouseMotion:

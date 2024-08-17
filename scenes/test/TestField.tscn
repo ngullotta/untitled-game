@@ -1,10 +1,13 @@
-[gd_scene load_steps=14 format=3 uid="uid://d0k7vqk5rh5vg"]
+[gd_scene load_steps=17 format=3 uid="uid://d0k7vqk5rh5vg"]
 
 [ext_resource type="Script" path="res://scenes/test/CharacterBody3D.gd" id="1_hs8ah"]
 [ext_resource type="PackedScene" uid="uid://cvyr76bfoyuv5" path="res://addons/turbosquid/TowerShieldPaladin.fbx" id="2_apvk6"]
 [ext_resource type="Script" path="res://scenes/test/Camera3D.gd" id="3_2tr22"]
 [ext_resource type="Shader" path="res://scenes/test/dashLines.gdshader" id="3_73rh3"]
 [ext_resource type="MeshLibrary" path="res://addons/malcolm-snap-castle/meshlibrary/snap-castle.meshlib" id="3_l4yv6"]
+[ext_resource type="Script" path="res://scenes/test/TowerShieldPaladin.gd" id="3_v32ir"]
+[ext_resource type="Script" path="res://scenes/test/DashRect.gd" id="6_38rvl"]
+[ext_resource type="Script" path="res://scenes/test/DebugText.gd" id="6_jvn80"]
 
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_472xh"]
 height = 1.0
@@ -61,19 +64,21 @@ script = ExtResource("1_hs8ah")
 
 [node name="Shield" parent="CharacterBody3D" instance=ExtResource("2_apvk6")]
 transform = Transform3D(-0.249037, 0, 0.0219236, 0, 0.25, 0, -0.0219236, 0, -0.249037, -1, -0.593209, 0)
+script = ExtResource("3_v32ir")
 
 [node name="Camera3D" type="Camera3D" parent="CharacterBody3D"]
 transform = Transform3D(1, 7.45058e-09, -2.98023e-08, 0, 0.965926, 0.258819, 0, -0.258819, 0.965926, -4.76837e-07, 1.15925, -0.637615)
 fov = 85.0
 script = ExtResource("3_2tr22")
 
-[node name="ColorRect" type="ColorRect" parent="CharacterBody3D/Camera3D"]
+[node name="DashRect" type="ColorRect" parent="CharacterBody3D/Camera3D"]
 visible = false
 material = SubResource("ShaderMaterial_xeyg3")
 offset_right = 1925.0
 offset_bottom = 1078.0
+script = ExtResource("6_38rvl")
 
-[node name="RichTextLabel" type="RichTextLabel" parent="CharacterBody3D/Camera3D"]
+[node name="DebugInfo" type="RichTextLabel" parent="CharacterBody3D/Camera3D"]
 anchors_preset = 5
 anchor_left = 0.5
 anchor_right = 0.5
@@ -83,6 +88,7 @@ offset_bottom = 100.0
 grow_horizontal = 2
 bbcode_enabled = true
 text_direction = 1
+script = ExtResource("6_jvn80")
 
 [node name="Head" type="Marker3D" parent="CharacterBody3D/Camera3D"]
 transform = Transform3D(1, -3.72529e-08, 2.98023e-08, 0, 1, 0, -1.49012e-07, 1.49012e-08, 1, -0.518715, 0.398926, -1.48881)
