@@ -10,18 +10,16 @@ enum State {
     MOVEMENT_LOCK = 0x40
 }
 
+# This is referenced by shield who needs the camera pos to raise
 @onready var camera = $Camera
 
 # State
 @export var state = 0
 var last_velocity = Vector3.ZERO
 var last_direction = Vector3.ZERO
-var last_camera_rota = Vector3.ZERO
 
 # Defaults
 var player_default_rota = Vector3.ZERO
-var shield_default_pos = Vector3.ZERO
-var shield_default_rota = Vector3.ZERO
 
 # Jump Stuff
 @export var JUMP_VELOCITY = 7
@@ -31,11 +29,9 @@ var jump_counter = 0
 const SPEED = 15.0
 
 # Dash stuff
-@export var dash_acceleration = 9
+@export var DASH_SPEED = 50
 var dash_time = 0.45
-var DASH_SPEED = 50
 var dash_counter = 0
-var dash_target = Vector3.ZERO
 
 # Slide stuff
 @export var SLIDE_FORCE = 2
@@ -149,9 +145,7 @@ func do_slide():
             func(): rotation = player_default_rota
         ]
     )
-    var aim = -global_transform.basis.z
-
-    slide_target = -aim.basis.z * 15
+    slide_target = -global_transform.basis.z * 15
 
 func _ready():
     Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
@@ -208,6 +202,8 @@ func _physics_process(delta):
     # Handle all inputs and get a vector for direction
     var direction = handle_input()
 
+    # Handle regular movement iff nothing is locking our movement in a
+    # particular direction (like dashing or sliding does)
     if direction != Vector3.ZERO and not has_active_state(State.MOVEMENT_LOCK):
         velocity.x = direction.x * SPEED
         velocity.z = direction.z * SPEED
