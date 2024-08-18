@@ -6,12 +6,11 @@ enum State {
     DASHING = 0x4,
     GROUND_POUNDING = 0x8,
     SHIELDING = 0x10,
-    SLIDING = 0x20
+    SLIDING = 0x20,
+    MOVEMENT_LOCK = 0x40
 }
 
-# References
-@onready var camera = $Camera3D
-@onready var shield = $Shield
+@onready var camera = $Camera
 
 # State
 @export var state = 0
@@ -24,11 +23,6 @@ var player_default_rota = Vector3.ZERO
 var shield_default_pos = Vector3.ZERO
 var shield_default_rota = Vector3.ZERO
 
-# Shield stuff
-const SHIELD_FORCE = 20
-var shield_target_pos = Vector3.ZERO
-var shield_target_rota = Vector3.ZERO
-
 # Jump Stuff
 @export var JUMP_VELOCITY = 7
 var jump_counter = 0
@@ -38,23 +32,15 @@ const SPEED = 15.0
 
 # Dash stuff
 @export var dash_acceleration = 9
-@export var DASH_FORCE = 200
-var dash_speed = 1
+var dash_time = 0.45
+var DASH_SPEED = 50
 var dash_counter = 0
 var dash_target = Vector3.ZERO
 
 # Slide stuff
 @export var SLIDE_FORCE = 2
-var slide_target = Vector3.ZERO
-
-# Timers
-# ======== DASH
-var dash_timer = 0
-var dash_time = 0.45
-
-# ======== SLIDE
-var slide_timer = 0
 var slide_time = 1.5
+var slide_target = Vector3.ZERO
 
 # Get the gravity from the project settings to be synced with RigidBody nodes.
 var gravity = ProjectSettings.get_setting("physics/3d/default_gravity")
@@ -123,10 +109,17 @@ func raise_shield():
     set_active_state(State.SHIELDING)
 
 func do_dash(direction := Vector3.ZERO):
+    # Shield is up for this
     raise_shield()
-    var aim = camera.get_camera_transform()
-    if direction == Vector3.ZERO:
-        dash_target = -aim.basis.z * 50
+    
+    var ddd = -global_transform.basis.z
+    var fff = -direction
+    if direction:
+        velocity = direction * DASH_SPEED
+    else:
+        velocity = -global_transform.basis.z * DASH_SPEED
+    # FIXME -> Why can't I do State.DASHING | State.MOVEMENT_LOCK
+    set_active_state(State.MOVEMENT_LOCK)
     add_timer(
         "dash",
         dash_time,
@@ -136,7 +129,8 @@ func do_dash(direction := Vector3.ZERO):
         [
             # Because we raise the shield during the dash too, we need
             # to ensure we lower it once finished
-            func(): remove_active_state(State.SHIELDING)
+            func(): remove_active_state(State.SHIELDING),
+            func(): remove_active_state(State.MOVEMENT_LOCK)
         ]
     )
 
@@ -155,15 +149,14 @@ func do_slide():
             func(): rotation = player_default_rota
         ]
     )
-    var aim = camera.get_camera_transform()
+    var aim = -global_transform.basis.z
+
     slide_target = -aim.basis.z * 15
 
 func _ready():
     Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
     set_process_input(true)
     player_default_rota = rotation
-    shield_default_pos = shield.position
-    shield_default_rota = shield.rotation
 
 func handle_input():
     var input_dir = Input.get_vector(
@@ -215,50 +208,15 @@ func _physics_process(delta):
     # Handle all inputs and get a vector for direction
     var direction = handle_input()
 
-    if direction != Vector3.ZERO:
+    if direction != Vector3.ZERO and not has_active_state(State.MOVEMENT_LOCK):
         velocity.x = direction.x * SPEED
         velocity.z = direction.z * SPEED
-        slide_timer = -1
-    else:
-        # Idle -> Dash
-        if has_active_state(State.DASHING):
-            velocity = lerp(
-                last_velocity,
-                dash_target * dash_speed,
-                dash_acceleration * delta
-            )
-        # Idle -> Slide
-        elif has_active_state(State.SLIDING):
-            velocity.x = lerp(
-                last_velocity.x,
-                slide_target.x * SLIDE_FORCE,
-                dash_acceleration * delta
-            )
-            velocity.z = lerp(
-                last_velocity.z,
-                slide_target.z * SLIDE_FORCE,
-                dash_acceleration * delta
-            )
-            rotation.x = deg_to_rad(82)
-        else:
-            velocity.x = move_toward(velocity.x, 0, SPEED)
-            velocity.z = move_toward(velocity.z, 0, SPEED)
-
-    if has_active_state(State.DASHING) and direction != Vector3.ZERO:
-        velocity.x += lerp(
-            velocity.x,
-            last_velocity.x * dash_speed,
-            dash_acceleration * delta
-        )
-        velocity.z += lerp(
-            velocity.z,
-            last_velocity.z * dash_speed,
-            dash_acceleration * delta
-        )
+    elif not has_active_state(State.MOVEMENT_LOCK):
+        velocity.x = move_toward(velocity.x, 0, SPEED)
+        velocity.z = move_toward(velocity.z, 0, SPEED)
 
     last_velocity = velocity
     last_direction = direction
-    last_camera_rota = camera.rotation
 
     move_and_slide()
     process_timers(delta)
