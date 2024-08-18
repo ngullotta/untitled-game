@@ -34,9 +34,9 @@ var dash_time = 0.45
 var dash_counter = 0
 
 # Slide stuff
-@export var SLIDE_FORCE = 2
+@export var SLIDE_SPEED = 10
 var slide_time = 1.5
-var slide_target = Vector3.ZERO
+var slide_counter = 0
 
 # Get the gravity from the project settings to be synced with RigidBody nodes.
 var gravity = ProjectSettings.get_setting("physics/3d/default_gravity")
@@ -105,17 +105,20 @@ func raise_shield():
     set_active_state(State.SHIELDING)
 
 func do_dash(direction := Vector3.ZERO):
+    if dash_counter >= 1:
+        return
+
     # Shield is up for this
     raise_shield()
-    
-    var ddd = -global_transform.basis.z
-    var fff = -direction
+
     if direction:
         velocity = direction * DASH_SPEED
     else:
         velocity = -global_transform.basis.z * DASH_SPEED
-    # FIXME -> Why can't I do State.DASHING | State.MOVEMENT_LOCK
+
+    # FIXME -> Why can't I do `State.DASHING | State.MOVEMENT_LOCK`
     set_active_state(State.MOVEMENT_LOCK)
+
     add_timer(
         "dash",
         dash_time,
@@ -126,12 +129,25 @@ func do_dash(direction := Vector3.ZERO):
             # Because we raise the shield during the dash too, we need
             # to ensure we lower it once finished
             func(): remove_active_state(State.SHIELDING),
-            func(): remove_active_state(State.MOVEMENT_LOCK)
+            func(): remove_active_state(State.MOVEMENT_LOCK),
+            func(): dash_counter = 0
         ]
     )
+    
+    dash_counter += 1
 
 func do_slide():
+    if slide_counter >= 1:
+        return
+
     raise_shield()
+
+    velocity = -global_transform.basis.z * SLIDE_SPEED
+
+    set_active_state(State.MOVEMENT_LOCK)
+
+    rotation.x = deg_to_rad(90)
+
     add_timer(
         "slide",
         slide_time,
@@ -139,13 +155,16 @@ func do_slide():
         0,
         State.SLIDING,
         [
-            # Because we raise the shield during the dash too, we need
+            # Because we raise the shield during the slide too, we need
             # to ensure we lower it once finished
             func(): remove_active_state(State.SHIELDING),
-            func(): rotation = player_default_rota
+            func(): remove_active_state(State.MOVEMENT_LOCK),
+            func(): rotation = player_default_rota,
+            func(): slide_counter = 0
         ]
     )
-    slide_target = -global_transform.basis.z * 15
+    
+    slide_counter += 1
 
 func _ready():
     Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
