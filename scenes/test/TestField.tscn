@@ -124,5 +124,5 @@ data = {
 }
 metadata/_editor_floor_ = Vector3(0, 0, 0)
 
-[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+[node name="SkyBox" type="WorldEnvironment" parent="."]
 environment = SubResource("Environment_f5rmd")
